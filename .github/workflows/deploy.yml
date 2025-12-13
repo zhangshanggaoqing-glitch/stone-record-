@@ -1,10 +1,13 @@
 name: Deploy to GitHub Pages
 
 on:
+  # 监听 main 分支的 push 事件
   push:
     branches: [ main ]
+  # 允许手动触发
   workflow_dispatch:
 
+# 设置权限，允许机器人创建 gh-pages 分支
 permissions:
   contents: write
 
@@ -13,23 +16,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. 拉取代码
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 使用 Node 18 (比 20 更稳定，比 16 更新)
+      # 2. 设置 Node.js 环境 (使用 v18 兼容性更好)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
+      # 3. 安装依赖 (关键修改！！！)
+      # 加上 --legacy-peer-deps 以忽略 Pinia 和 Uni-app 之间的版本冲突警告
       - name: Install Dependencies
-        # 增加 --legacy-peer-deps 防止因依赖版本冲突导致的安装失败
         run: npm install --legacy-peer-deps
 
+      # 4. 打包构建
       - name: Build H5
-        # 这里确保你的 package.json 里确实有 build:h5 这个命令
         run: npm run build:h5
 
+      # 5. 部署到 GitHub Pages
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
