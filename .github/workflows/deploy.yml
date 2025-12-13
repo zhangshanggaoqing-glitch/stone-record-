@@ -1,0 +1,43 @@
+name: Deploy to GitHub Pages
+
+on:
+  # 监听 main 分支的 push 事件
+  push:
+    branches: [ main ]
+  # 允许在 Actions 页面手动触发构建
+  workflow_dispatch:
+
+# 设置权限，允许机器人向仓库写入代码（创建 gh-pages 分支）
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 拉取代码到虚拟机
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. 安装 Node.js 环境 (使用 v20 版本)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 3. 安装项目依赖
+      - name: Install Dependencies
+        run: npm install
+
+      # 4. 执行打包命令 (Uni-app H5 专用)
+      - name: Build H5
+        run: npm run build:h5
+
+      # 5. 将打包结果部署到 GitHub Pages
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # ⚠️ 注意：这是 Uni-app 默认的输出路径，不要改
+          publish_dir: ./dist/build/h5
