@@ -21,13 +21,21 @@ export interface PdfReportData {
 
 /**
  * 加载本地字体文件并转换为 Base64
- * [优化] 使用 uni.arrayBufferToBase64 原生方法，避免大循环导致内存溢出
+ * [修复] 解决 GitHub Pages 子路径部署导致的 404 问题
  */
 const loadCustomFont = async (): Promise<string> => {
   return new Promise((resolve, reject) => {
-    // 字体路径：建议放在 static 根目录下，打包时会自动复制
-    // 注意：如果是 App 端真机运行，可能需要使用 plus.io API，但通常 static 目录 HTTP 请求方式兼容性最好
-    const fontUrl = '/static/fonts/SimHei.ttf'; 
+    // 1. 动态构建路径
+    // 你的 GitHub 仓库名 (根据你的报错日志确认是 stone-record-)
+    // 注意：前后都要有斜杠
+    const repoPrefix = '/stone-record-/'; 
+    
+    // 如果是生产环境 (PROD)，加上仓库名前缀；如果是本地开发，直接用 /static
+    const fontUrl = import.meta.env.PROD 
+      ? `${repoPrefix}static/fonts/SimHei.ttf` 
+      : '/static/fonts/SimHei.ttf';
+
+    console.log('正在加载字体，路径为:', fontUrl); // 方便 F12 调试
 
     uni.request({
       url: fontUrl,
@@ -36,8 +44,8 @@ const loadCustomFont = async (): Promise<string> => {
       success: (res) => {
         if (res.statusCode === 200 && res.data) {
           try {
-            // ✅ [性能关键点] 使用原生 API 瞬间完成转换，不占 JS 堆内存
-            // @ts-ignore (uni-app 类型定义有时可能滞后，但此 API 存在)
+            // ✅ [性能关键点] 使用原生 API 瞬间完成转换
+            // @ts-ignore (忽略类型检查报错)
             const base64 = uni.arrayBufferToBase64(res.data as ArrayBuffer);
             resolve(base64);
           } catch (e) {
@@ -45,7 +53,7 @@ const loadCustomFont = async (): Promise<string> => {
             reject('Font conversion failed');
           }
         } else {
-          console.error('Font file not found or download failed:', fontUrl);
+          console.error(`Font download failed (Status ${res.statusCode}) at: ${fontUrl}`);
           reject(`Font file not found: ${fontUrl}`);
         }
       },
